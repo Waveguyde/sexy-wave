@@ -13,6 +13,21 @@ from skimage.segmentation import watershed
 from skimage.morphology import local_minima
 from skimage.measure import label
 
+def synchronize(*datasets):
+    """Synchronize multiple datasets to the overlapping time range."""
+    
+    if not datasets:
+        raise ValueError("At least one dataset must be provided.")
+
+    # Step 1: Find the global start and end time
+    start_time = max(ds['time'].min().values for ds in datasets)
+    end_time = min(ds['time'].max().values for ds in datasets)
+
+    # Step 2: Truncate all datasets to the overlapping time range
+    synchronized_datasets = [ds.sel(time=slice(start_time, end_time)) for ds in datasets]
+
+    return synchronized_datasets
+
 def get_CORAL_time(reference_datetime_object,seconds_since_reference):
     time=[]
     for s in seconds_since_reference:
