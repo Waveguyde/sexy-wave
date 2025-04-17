@@ -1,6 +1,7 @@
 import matplotlib.colors as mcolors
 import numpy as np
 import matplotlib.dates as mdates
+import matplotlib.path as mpath
 
 def Fire_and_Ice():
 
@@ -129,3 +130,22 @@ def timelab_format_func(value, tick_number):
         return "{}\n{}".format(dt.strftime("%Y-%b-%d"), dt.strftime("%H"))
     else:
         return dt.strftime("%H")
+
+def nice_boundary_path_for_maps(lon,lat):
+    
+    Path = mpath.Path
+    path_data = [(Path.MOVETO, (lon.min(), lat.min()))]
+
+    for lo in lon:
+        path_data.append((Path.LINETO, (lo, lat.min())))
+    
+    path_data.append((Path.LINETO, (lon.max(), lat.max())))
+
+    for lo in np.flip(lon):
+        path_data.append((Path.LINETO, (lo, lat.max())))
+    
+    path_data.append((Path.CLOSEPOLY, (lon.min(), lat.min())))
+    codes, verts = zip(*path_data)
+    path = mpath.Path(verts, codes)
+
+    return path

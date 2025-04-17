@@ -36,5 +36,6 @@ def momentum_flux(N,T0,A,fwhm,m2,omega_i):
     g=9.54 
     lz = 2*np.pi/np.sqrt(m2)
     correction_factor = np.exp(-3.56*fwhm**2/lz**2)
+    correction_factor[np.isnan(correction_factor)]=1.
     T_true = A/correction_factor
     return g**2 * omega_i / 2 / N**3 * np.sqrt(1-(omega_i/N)**2) * (T_true/T0)**2

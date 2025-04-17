@@ -13,6 +13,42 @@ from skimage.segmentation import watershed
 from skimage.morphology import local_minima
 from skimage.measure import label
 
+def OH_weighting(data, z, peak, fwhm):
+
+    dz = z.diff(dim='altitude').values[0]
+
+    # Unit detection: Assume km if dz < 10, else meters
+    if np.abs(dz) > 10:  
+        z = z*1e-3     # Convert altitude to kilometers
+        
+    # Calculate Gaussian weights
+    weights = OH_gaussian_kernel(z, center=peak, sigma=fwhm / 2.355)
+
+    def weighted_mean_and_variation(da):
+        # Apply mask to handle NaN values
+        mask = np.isfinite(da.values)
+        masked_weights = weights.values * mask
+        mean = np.nansum(da.values * masked_weights) / np.sum(masked_weights)
+        variation = np.sqrt(np.nansum(masked_weights**2 * (da.values - mean)**2)/np.sum(masked_weights))
+        return mean, variation
+
+    # Apply the function based on the input type
+    if isinstance(data, xr.Dataset):
+        # Store results in a dictionary
+        results = {}
+        for var in data.data_vars:
+            mean, variation = weighted_mean_and_variation(data[var])
+            results[var] = mean
+            results[f"{var}_sigma"] = variation
+        
+        # Return as a new Dataset
+        return xr.Dataset({k: xr.DataArray(v) for k, v in results.items()})
+    elif isinstance(data, xr.DataArray):
+        # Apply the weighted mean directly to the DataArray
+        return weighted_mean_and_variation(data)
+    else:
+        raise TypeError("Input must be an xarray.Dataset or xarray.DataArray.")
+
 def synchronize(*datasets):
     """Synchronize multiple datasets to the overlapping time range."""
     
