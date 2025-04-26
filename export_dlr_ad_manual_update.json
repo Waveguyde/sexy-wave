@@ -6422,7 +6422,7 @@
             "family": "Ohlmann",
             "lineage": null
           },
-          "id": "Quo Vadis",
+          "id": "Quo Vadis France, Aérodrome de Serres-La Bâtie, La Bâtie Montsaléon, France",
           "orcid": null
         },
         {
@@ -7432,7 +7432,7 @@
         },
         {
           "orcid": null,
-          "id": "Quo Vadis",
+          "id": "Quo Vadis France, Aérodrome de Serres-La Bâtie, La Bâtie Montsaléon, France",
           "name": {
             "honourific": null,
             "given": "Klaus",
@@ -7441,7 +7441,7 @@
           }
         },
         {
-          "id": "The Perlan Project",
+          "id": "The Perlan Project", 
           "orcid": null,
           "name": {
             "family": "Payne",
@@ -45675,7 +45675,7 @@
           }
         },
         {
-          "id": null,
+          "id": "DLR, IPA",
           "name": {
             "lineage": null,
             "family": "Hofbauer",
@@ -53214,7 +53214,8 @@
             "honourific": null,
             "family": "Maaß",
             "lineage": null
-          }
+          },
+          "id": "DLR, IPA"
         },
         {
           "name": {
@@ -53331,7 +53332,8 @@
             "lineage": null,
             "honourific": null,
             "given": "K."
-          }
+          },
+          "id": "DLR, IPA"
         },
         {
           "name": {
