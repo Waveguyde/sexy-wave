@@ -5320,7 +5320,7 @@
             "family": "Edtbauer"
           },
           "orcid": null,
-          "id": null
+          "id": "DLR, IPA"
         },
         {
           "name": {
@@ -5359,7 +5359,7 @@
             "given": "Manuel",
             "honourific": null
           },
-          "id": null,
+          "id": "DLR, IPA",
           "orcid": null
         },
         {
@@ -6954,9 +6954,9 @@
         },
         {
           "name": {
-            "given": "Alejandro de la",
+            "given": "Alejandro",
             "honourific": null,
-            "family": "Torre",
+            "family": "de la Torre",
             "lineage": null
           },
           "orcid": null,
@@ -22057,7 +22057,7 @@
             "given": "O.L.",
             "honourific": null
           },
-          "id": null
+          "id": "Brookhaven National Lab, NY, USA"
         },
         {
           "id": null,
@@ -22075,7 +22075,7 @@
             "lineage": null,
             "family": "Omar"
           },
-          "id": null
+          "id": "LaRC, Hampton, USA"
         },
         {
           "name": {
@@ -34825,14 +34825,6 @@
         },
         {
           "name": {
-            "given": "Peter",
-            "honourific": null,
-            "lineage": null,
-            "family": "Mahnke"
-          }
-        },
-        {
-          "name": {
             "family": "Rahm",
             "lineage": null,
             "given": "Stephan",
@@ -41355,7 +41347,7 @@
             "given": "K.",
             "honourific": null
           },
-          "id": null
+          "id": "DLR, IPA"
         },
         {
           "name": {
@@ -46115,7 +46107,8 @@
             "honourific": null,
             "family": "Frech",
             "lineage": null
-          }
+          },
+          "id": "DLR, IPA"
         },
         {
           "name": {
@@ -47372,7 +47365,7 @@
       "date_issue": 1999,
       "creators": [
         {
-          "id": null,
+          "id": "DLR, IPA",
           "name": {
             "honourific": null,
             "given": "M.",
