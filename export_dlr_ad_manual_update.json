@@ -15895,8 +15895,8 @@
           "id": "University of Colorado, Boulder, CO, USA",
           "name": {
             "lineage": null,
-            "family": "Michael Jones",
-            "given": "R.",
+            "family": "Jones",
+            "given": "Michael",
             "honourific": null
           }
         },
@@ -16146,8 +16146,8 @@
           "id": "DLR, IPA",
           "name": {
             "honourific": null,
-            "given": "Margerita",
-            "family": "Vázquez Navarro",
+            "given": "Margerita Vázquez",
+            "family": "Navarro",
             "lineage": null
           }
         },
@@ -18419,10 +18419,10 @@
           "id": "Dept. Meteorology, Stockholm Univ.",
           "orcid": null,
           "name": {
-            "family": "Jörg",
+            "family": "Gumbel",
             "lineage": null,
             "honourific": null,
-            "given": "Gumbel"
+            "given": "Jörg"
           }
         },
         {
