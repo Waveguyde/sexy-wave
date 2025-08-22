@@ -2,6 +2,8 @@ import matplotlib.colors as mcolors
 import numpy as np
 import matplotlib.dates as mdates
 import matplotlib.path as mpath
+import matplotlib.pyplot as plt
+from matplotlib.colors import hsv_to_rgb
 
 def Fire_and_Ice():
 
@@ -149,3 +151,66 @@ def nice_boundary_path_for_maps(lon,lat):
     path = mpath.Path(verts, codes)
 
     return path
+
+def Plot_Noble_Vectorfield(ds, u_name='u', v_name='v'):
+    # Extract u and v
+    u = ds[u_name]
+    v = ds[v_name]
+
+    # Infer dimensions
+    dim1, dim2 = u.dims
+    x = ds[dim1]
+    y = ds[dim2]
+
+    # Compute vector magnitude and direction
+    abs_value = np.sqrt(u**2 + v**2)
+    direction = np.arctan2(v, u)
+
+    hue = (direction.T + np.pi) / (2 * np.pi)
+    hue = np.round(hue*10)/10
+    value = abs_value.T / np.max(abs_value)
+
+    # HSV image
+    hsv_image = np.zeros((len(y), len(x), 3))
+    hsv_image[..., 0] = hue
+    hsv_image[..., 1] = 1
+    hsv_image[..., 2] = value
+    rgb_image = hsv_to_rgb(hsv_image)
+
+    # Time conversion for x-axis
+    time_num = mdates.date2num(x.values)
+
+    # Main plot
+    fig, ax = plt.subplots(figsize=(10, 10 * 1.414))
+    ax.imshow(rgb_image, origin='lower', aspect='auto', extent=[
+        time_num.min(), time_num.max(),
+        float(y.min()), float(y.max())])
+
+    # Contours
+    contour_lines = ax.contour(time_num, y, abs_value.T, levels=[0, 20, 40, 60, 80, 100], colors='white')
+    ax.clabel(contour_lines, inline=True, fontsize=10, fmt='%d')
+
+    # Format x-axis as dates
+    ax.xaxis_date()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    plt.xticks(rotation=45)
+
+    # ---- Add inset: HSV colorwheel ----
+    inset_ax = fig.add_axes([1., 0.67, 0.2, 0.2], projection='polar')  # [left, bottom, width, height]
+    r = np.linspace(0, 1, 100)
+    theta = np.linspace(-np.pi, np.pi, 21)
+    R, T = np.meshgrid(r, theta)
+
+    H = (T + np.pi) / (2 * np.pi)
+    S = np.ones_like(H)
+    V = R
+    hsv = np.stack((H, S, V), axis=-1)
+    rgb = hsv_to_rgb(hsv)
+
+    inset_ax.pcolormesh(T, R, V, color=rgb.reshape(-1, 3), shading='auto')
+    inset_ax.set_xticks(np.radians([0, 45, 90, 135, 180, 225, 270, 315]))
+    inset_ax.set_xticklabels(['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'])
+    inset_ax.set_yticks([])
+    inset_ax.set_title("Wind Direction and Magnitude", fontsize=8, pad=10)
+
+    return fig, ax

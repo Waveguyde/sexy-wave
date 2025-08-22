@@ -13,6 +13,11 @@ from skimage.segmentation import watershed
 from skimage.morphology import local_minima
 from skimage.measure import label
 
+import zarr
+from numcodecs import Blosc
+from scipy import ndimage as ndi
+from skimage.measure import label as cc_label
+
 def OH_weighting(data, z, peak, fwhm):
 
     dz = z.diff(dim='altitude').values[0]
@@ -225,6 +230,109 @@ def wavefield_segmentation(data, sigma):
     minima_pos = label(mini,connectivity=connection_param)
     
     return watershed(idata,connectivity=connection_param,markers=minima_pos)
+
+
+def wavefield_segmentation_zarr(
+    in_zarr,                         # zarr.Array or path to zarr group/array
+    out_zarr,                        # zarr.Array or path to create for labels (int32)
+    sigma,                           # tuple/list of 3 floats for Z,Y,X (spatial)
+    spatial_axes=(-3, -2, -1),       # which axes are spatial
+    chunks=None,                     # optional override for output chunking (defaults to input chunks)
+    allow_borders=False,
+    connectivity=1,                  # within each 3-D volume
+    dtype_float=np.float32,
+):
+    """
+    Memory-lean segmentation for huge 6-D arrays stored as chunked Zarr.
+
+    Processes one 3-D volume at a time over all non-spatial indices, reusing buffers,
+    and writes results directly to an output Zarr array (int32 labels).
+
+    Returns the opened output zarr.Array.
+    """
+
+    # Open / normalize inputs
+    in_arr = zarr.open(in_zarr, mode='r') if not hasattr(in_zarr, 'shape') else in_zarr
+    shape = in_arr.shape
+    ndim = in_arr.ndim
+
+    # Normalize spatial axes to positive indices
+    s_axes = tuple(ax if ax >= 0 else ndim + ax for ax in spatial_axes)
+    if len(set(s_axes)) != 3:
+        raise ValueError("spatial_axes must specify exactly 3 distinct axes")
+
+    # Permute so spatial axes are last (…, Z, Y, X) to get contiguous 3-D views
+    perm = tuple(i for i in range(ndim) if i not in s_axes) + s_axes
+    inv_perm = np.argsort(perm)
+
+    in_view = in_arr.transpose(perm)
+    nonspatial_shape = in_view.shape[:-3]
+    Z, Y, X = in_view.shape[-3:]
+
+    # Prepare output store
+    if hasattr(out_zarr, 'shape'):
+        out_view = out_zarr.transpose(perm)
+    else:
+        # Choose chunks: mirror input chunks along permuted axes if available
+        if chunks is None:
+            if getattr(in_arr, 'chunks', None) is not None:
+                chunks = tuple(in_arr.chunks[i] for i in perm)
+            else:
+                # safe default: keep non-spatial chunks as 1; moderate 3-D chunks
+                chunks = nonspatial_shape + (min(Z, 64), min(Y, 256), min(X, 256))
+        compressor = Blosc(cname='zstd', clevel=5, shuffle=Blosc.SHUFFLE)
+        out_view = zarr.create(
+            shape=in_view.shape, chunks=chunks, dtype=np.int32,
+            store=out_zarr, overwrite=True, compressor=compressor
+        )
+
+    # Preallocate reusable work buffers for one 3-D volume
+    work_f = np.empty((Z, Y, X), dtype=dtype_float, order='C')   # smoothed / inverted
+    markers = np.empty((Z, Y, X), dtype=np.int32, order='C')     # minima labels
+    # NOTE: watershed output can be written directly to the output zarr slice
+
+    # Build connectivity struct for 3D ops
+    struct = ndi.generate_binary_structure(rank=3, connectivity=connectivity)
+
+    # Iterate over all non-spatial indices
+    # We stride the non-spatial product so only one 3-D block is in RAM at once.
+    for idx in np.ndindex(*nonspatial_shape):
+        # Read 3-D volume as float32 contiguous
+        vol = np.asarray(in_view[idx], dtype=dtype_float, order='C')  # (Z,Y,X)
+
+        # Invert into work_f (no extra allocation)
+        np.subtract(vol.max(initial=vol.flat[0]), vol, out=work_f)    # work_f = max - vol
+
+        # Gaussian smoothing into-place (explicit output avoids a new array)
+        # sigma is for Z,Y,X; no upcast; consider small truncate to keep halo small if you later block.
+        gaussian_filter(work_f, sigma=sigma, output=work_f, mode='nearest')
+
+        # Local minima -> bool mask (allocated transiently, same size as 3D volume)
+        # (Could avoid this allocation by doing a minimum_filter + compare into a preallocated bool buffer if needed.)
+        mini = local_minima(work_f, connectivity=struct, allow_borders=allow_borders)
+
+        # Label minima into 'markers' buffer (int32)
+        cc_label(mini, connectivity=struct, out=markers)
+
+        # Watershed: write labels directly to output zarr slice to avoid a full-size temporary
+        # Use the *original inverted* image as 'image' (i.e., work_f contains smoothed inverted;
+        # if you prefer smoothed topology for markers only, pass 'image=work_f' or recompute as needed.)
+        ws_labels = watershed(
+            image=work_f,                # or use the *un*smoothed inverted if that's desired
+            markers=markers,
+            connectivity=struct,
+            compactness=0.0,             # avoid extra temporaries from compactness term
+            watershed_line=False,        # setting True adds another pass / memory
+        )
+
+        # Store to output
+        out_view[idx] = ws_labels.astype(np.int32, copy=False)
+
+        # Proactively drop big temporaries for this iteration
+        del mini, ws_labels
+
+    # Return output in original axis order
+    return out_view.transpose(inv_perm)
 
 def wavepaket_reconstruction(list_of_labels,CWT,segments):
     """
